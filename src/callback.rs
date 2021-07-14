@@ -26,6 +26,7 @@ use core::marker::PhantomData;
 /// );
 /// erased_fp.call(1);
 /// ```
+#[derive(Copy, Clone, Debug)]
 pub struct ErasedFnPointer<'a, T, Ret> {
     struct_pointer: *mut c_void,
     fp: *const (),
