@@ -31,6 +31,7 @@
 
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
 
+mod callback;
 mod dyn_generator;
 mod generator_ext;
 mod into_gen;
