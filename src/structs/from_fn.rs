@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult};
+use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
 
 /// Creates a new generator where each iteration calls the provided closure
 /// `F: FnMut() -> Option<T>`.
@@ -57,9 +57,9 @@ where
     type Output = T;
 
     #[inline]
-    fn run(&mut self, mut output: impl FnMut(Self::Output) -> ValueResult) -> GeneratorResult {
+    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         while let Some(v) = self.0() {
-            if output(v) == ValueResult::Stop {
+            if output.call(v) == ValueResult::Stop {
                 return GeneratorResult::Stopped;
             }
         }

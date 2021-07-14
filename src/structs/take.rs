@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult};
+use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
 
 /// Take `n` values from a generator. See [`.take()`](crate::GeneratorExt::take) for details.
 pub struct Take<Src> {
@@ -20,18 +20,21 @@ impl<Src: Generator> Generator for Take<Src> {
     type Output = Src::Output;
 
     #[inline]
-    fn run(&mut self, mut output: impl FnMut(Self::Output) -> ValueResult) -> GeneratorResult {
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         if self.amount_left > 0 {
-            let amount_left = &mut self.amount_left;
-            let result = self.source.run(|x| {
-                *amount_left -= 1;
-                let res = output(x);
-                if *amount_left == 0 {
-                    ValueResult::Stop
-                } else {
-                    res
-                }
-            });
+            let mut pair = (&mut self.amount_left, output);
+            let result = self.source.run(
+                ErasedFnPointer::from_associated(&mut pair, |pair, x| {
+                    let (amount_left, output) = pair;
+                    **amount_left -= 1;
+                    let res = output.call(x);
+                    if **amount_left == 0 {
+                        ValueResult::Stop
+                    } else {
+                        res
+                    }
+                })
+            );
             if result == GeneratorResult::Complete {
                 self.amount_left = 0;
                 return GeneratorResult::Complete;
@@ -48,17 +51,19 @@ impl<Src: Generator> Generator for Take<Src> {
 #[cfg(test)]
 mod tests {
     use crate::structs::Take;
-    use crate::{Generator, GeneratorResult, SliceGenerator, ValueResult};
+    use crate::{Generator, GeneratorResult, SliceGenerator, ValueResult, ErasedFnPointer};
 
     #[test]
     fn take() {
         let data = [1, 2, 3, 4, 5];
         let mut output: Vec<i32> = Vec::new();
 
-        let result = Take::new(SliceGenerator::new(&data), 2).run(|x| {
-            output.push(*x);
-            ValueResult::MoreValues
-        });
+        let result = Take::new(SliceGenerator::new(&data), 2).run(
+            ErasedFnPointer::from_associated(&mut output, |output, x| {
+                output.push(*x);
+                ValueResult::MoreValues
+            })
+        );
         assert_eq!(result, GeneratorResult::Complete);
         assert_eq!(output, [1, 2]);
     }
@@ -70,18 +75,22 @@ mod tests {
 
         let mut generator = Take::new(SliceGenerator::new(&data), 4);
 
-        let result = generator.run(|x| {
-            output.push(*x);
-            (output.len() < 2).into()
-        });
+        let result = generator.run(
+            ErasedFnPointer::from_associated(&mut output, |output, x| {
+                output.push(*x);
+                (output.len() < 2).into()
+            })
+        );
 
         assert_eq!(result, GeneratorResult::Stopped);
         assert_eq!(output, [1, 2]);
 
-        let result = generator.run(|x| {
-            output.push(*x);
-            ValueResult::MoreValues
-        });
+        let result = generator.run(
+            ErasedFnPointer::from_associated(&mut output, |output, x| {
+                output.push(*x);
+                ValueResult::MoreValues
+            })
+        );
         assert_eq!(result, GeneratorResult::Complete);
         assert_eq!(output, [1, 2, 3, 4]);
     }

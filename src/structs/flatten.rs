@@ -1,4 +1,4 @@
-use crate::{structs::utility::set_some, Generator, GeneratorResult, IntoGenerator, ValueResult};
+use crate::{structs::utility::set_some, Generator, GeneratorResult, IntoGenerator, ValueResult, ErasedFnPointer};
 
 /// Flatten generator implementation. See [`.flatten()`](crate::GeneratorExt::flatten) for details.
 pub struct Flatten<Src>
@@ -32,20 +32,25 @@ where
     type Output = <<Src as Generator>::Output as IntoGenerator>::Output;
 
     #[inline]
-    fn run(&mut self, mut output: impl FnMut(Self::Output) -> ValueResult) -> GeneratorResult {
+    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         if let Some(current) = self.current_generator.as_mut() {
-            if current.run(|x| output(x)) == GeneratorResult::Stopped {
+            if current.run(output) == GeneratorResult::Stopped {
                 return GeneratorResult::Stopped;
             }
         }
 
-        let current_generator = &mut self.current_generator;
-        self.source.run(|x| {
-            match set_some(current_generator, x.into_gen()).run(|value| output(value)) {
-                GeneratorResult::Stopped => ValueResult::Stop,
-                GeneratorResult::Complete => ValueResult::MoreValues,
-            }
-        })
+        self.source.run(
+            ErasedFnPointer::from_associated(
+                &mut (&mut self.current_generator, output),
+                |pair, x| {
+                    let (current_generator, output) = *pair;
+                    match set_some(current_generator, x.into_gen()).run(output)
+                    {
+                        GeneratorResult::Stopped => ValueResult::Stop,
+                        GeneratorResult::Complete => ValueResult::MoreValues,
+                    }
+            })
+        )
     }
 }
 

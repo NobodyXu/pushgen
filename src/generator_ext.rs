@@ -1,7 +1,7 @@
 use crate::structs::{
     Chain, Cloned, Dedup, Filter, FilterMap, Flatten, IteratorAdaptor, Map, Skip, Take, Zip,
 };
-use crate::{Generator, GeneratorResult, ValueResult};
+use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
 
 pub trait Sealed {}
 
@@ -46,11 +46,12 @@ pub trait GeneratorExt: Sealed + Generator {
         Self: Sized,
     {
         let mut res = None;
-        let res_mut = &mut res;
-        self.run(move |value| {
-            *res_mut = Some(value);
-            ValueResult::MoreValues
-        });
+        self.run(
+            ErasedFnPointer::from_associated(&mut res, |res_mut, value| {
+                *res_mut = Some(value);
+                ValueResult::MoreValues
+            })
+        );
         res
     }
 
@@ -325,15 +326,15 @@ pub trait GeneratorExt: Sealed + Generator {
     /// assert_eq!(result, GeneratorResult::Complete);
     /// ```
     #[inline]
-    fn for_each<Func>(&mut self, mut func: Func) -> GeneratorResult
+    fn for_each<Func>(self, mut func: Func) -> GeneratorResult
     where
         Self: Sized,
         Func: FnMut(Self::Output),
     {
-        self.run(move |value| {
-            func(value);
+        self.run(ErasedFnPointer::from_associated(&mut func, |func, value| {
+            (*func)(value);
             ValueResult::MoreValues
-        })
+        }))
     }
 
     /// A generator method that applies a fallible function to each item
@@ -367,20 +368,25 @@ pub trait GeneratorExt: Sealed + Generator {
     /// assert_eq!(output, ["stale_bread.json", "torrential_rain.png"]);
     /// ```
     #[inline]
-    fn try_for_each<F, E>(&mut self, mut f: F) -> Result<(), E>
+    fn try_for_each<F, E>(self, mut f: F) -> Result<(), E>
     where
         Self: Sized,
         F: FnMut(Self::Output) -> Result<(), E>,
     {
         let mut res = Ok(());
-        let res_mut = &mut res;
-        self.run(move |value| match f(value) {
-            Ok(()) => ValueResult::MoreValues,
-            Err(e) => {
-                *res_mut = Err(e);
-                ValueResult::Stop
+        let mut pair = (&mut res, f);
+
+        self.run(ErasedFnPointer::from_associated(&mut pair, |pair, value| {
+            let (res_mut, f) = *pair;
+
+            match f(value) {
+                Ok(()) => ValueResult::MoreValues,
+                Err(e) => {
+                    *res_mut = Err(e);
+                    ValueResult::Stop
+                }
             }
-        });
+        }));
         res
     }
 
@@ -496,7 +502,7 @@ impl<T: Generator> GeneratorExt for T {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{Generator, GeneratorExt, GeneratorResult, ValueResult};
+    use crate::{Generator, GeneratorExt, GeneratorResult, ValueResult, ErasedFnPointer};
 
     #[test]
     fn for_each_stopped() {
@@ -504,7 +510,7 @@ mod tests {
         impl Generator for StoppingGen {
             type Output = i32;
 
-            fn run(&mut self, _output: impl FnMut(Self::Output) -> ValueResult) -> GeneratorResult {
+            fn run(&mut self, _output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
                 GeneratorResult::Stopped
             }
         }

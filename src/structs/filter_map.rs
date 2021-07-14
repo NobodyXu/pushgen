@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult};
+use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
 
 /// Implements a mapped generator. See [`.map()`](crate::GeneratorExt::map) for details.
 pub struct FilterMap<Gen, Func> {
@@ -25,14 +25,18 @@ where
     type Output = Out;
 
     #[inline]
-    fn run(&mut self, mut output: impl FnMut(Self::Output) -> ValueResult) -> GeneratorResult {
-        let (source, transform) = (&mut self.source, &mut self.transform);
-        source.run(move |x| {
-            if let Some(x) = transform(x) {
-                output(x)
-            } else {
-                ValueResult::MoreValues
-            }
-        })
+    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
+        let mut pair = (&mut self.transform, &mut output);
+
+        self.source.run(
+            ErasedFnPointer::from_associated(&mut pair, |pair, x| {
+                let (transform, output) = *pair;
+                if let Some(x) = transform(x) {
+                    output.call(x)
+                } else {
+                    ValueResult::MoreValues
+                }
+            })
+        )
     }
 }

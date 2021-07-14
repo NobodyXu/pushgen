@@ -40,6 +40,7 @@ pub mod structs;
 #[cfg(test)]
 pub mod test;
 
+pub use crate::callback::ErasedFnPointer;
 pub use crate::generator_ext::GeneratorExt;
 pub use either::Either;
 pub use into_gen::IntoGenerator;
@@ -116,7 +117,7 @@ impl From<bool> for GeneratorResult {
 ///
 /// A generic generator can be written like this:
 /// ```
-/// use pushgen::{Generator, ValueResult, GeneratorResult};
+/// use pushgen::{Generator, ValueResult, GeneratorResult, ErasedFnPointer};
 /// struct GenericGenerator<Out, Gen>
 /// where
 ///     Gen: FnMut() -> Option<Out>,
@@ -130,9 +131,9 @@ impl From<bool> for GeneratorResult {
 /// {
 ///     type Output = Out;
 ///
-///     fn run(&mut self, mut output: impl FnMut(Self::Output) -> ValueResult) -> GeneratorResult {
+///     fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
 ///         while let Some(value) = (self.generator)() {
-///             if output(value) == ValueResult::Stop {
+///             if output.call(value) == ValueResult::Stop {
 ///                 return GeneratorResult::Stopped;
 ///             }
 ///         }
@@ -148,7 +149,7 @@ pub trait Generator {
     /// as long as the closure returns [`ValueResult::MoreValues`](crate::ValueResult::MoreValues).
     /// If the closure returns [`ValueResult::Stop`](crate::ValueResult::Stop) the generator **must**
     /// return [`GeneratorResult::Stopped`](crate::GeneratorResult::Stopped).
-    fn run(&mut self, output: impl FnMut(Self::Output) -> crate::ValueResult) -> GeneratorResult;
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, crate::ValueResult>) -> GeneratorResult;
 }
 
 /// A generator that generates values from a slice.
@@ -178,13 +179,13 @@ impl<'a, T> Generator for SliceGenerator<'a, T> {
     type Output = &'a T;
 
     #[inline]
-    fn run(&mut self, mut output: impl FnMut(Self::Output) -> ValueResult) -> GeneratorResult {
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         // Read the len once. The Rust compiler seems to have trouble optimizing self.slice.len()
         // so read it once and use that in the loop condition instead.
         let len = self.slice.len();
         while self.index < len {
             // Safety: self.index < self.slice.len() always true.
-            if output(unsafe { self.slice.get_unchecked(self.index) }) == ValueResult::Stop {
+            if output.call(unsafe { self.slice.get_unchecked(self.index) }) == ValueResult::Stop {
                 self.index += 1;
                 return GeneratorResult::Stopped;
             }
@@ -202,7 +203,7 @@ where
     type Output = L::Output;
 
     #[inline]
-    fn run(&mut self, output: impl FnMut(Self::Output) -> ValueResult) -> GeneratorResult {
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         match self {
             Either::Left(left) => left.run(output),
             Either::Right(right) => right.run(output),

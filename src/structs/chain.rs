@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult};
+use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
 
 /// Implements a chained generator. See [`.chain()`](crate::GeneratorExt::chain) for details.
 pub struct Chain<First, Second> {
@@ -26,15 +26,15 @@ where
     type Output = First::Output;
 
     #[inline]
-    fn run(&mut self, mut output: impl FnMut(Self::Output) -> ValueResult) -> GeneratorResult {
+    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         if self.first_active {
-            let result = self.first.run(|x| output(x));
+            let result = self.first.run(output);
             if result == GeneratorResult::Stopped {
                 return GeneratorResult::Stopped;
             }
             self.first_active = false;
         }
-        self.second.run(|x| output(x))
+        self.second.run(output)
     }
 }
 
@@ -42,16 +42,20 @@ where
 mod tests {
     use crate::structs::chain::Chain;
     use crate::SliceGenerator;
-    use crate::{Generator, GeneratorResult, ValueResult};
+    use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
 
     #[test]
     fn basic_chain() {
         let data = [1, 2, 3];
         let mut output: Vec<i32> = Vec::new();
-        let result = Chain::new(SliceGenerator::new(&data), SliceGenerator::new(&data)).run(|x| {
-            output.push(*x);
-            ValueResult::MoreValues
-        });
+        let result = Chain::new(SliceGenerator::new(&data), SliceGenerator::new(&data))
+            .run(
+                ErasedFnPointer::from_associated(&mut output, |output, x| {
+                    output.push(*x);
+                    ValueResult::MoreValues
+                }
+            )
+        );
 
         assert_eq!(result, GeneratorResult::Complete);
         assert_eq!(output, [1, 2, 3, 1, 2, 3]);
