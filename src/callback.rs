@@ -36,6 +36,8 @@ pub struct ErasedFnPointer<'a, T, Ret> {
     phantom_fp: PhantomData<fn(T) -> Ret>,
 }
 
+// Manualy impl of `Copy` and `Clone` is required, since the `#[derive(Copy, Clone)]`
+// would only impl them if both `T` and `Ret` also implement `Copy` and `Clone`.
 impl<'a, T, Ret> Copy for ErasedFnPointer<'a, T, Ret> {}
 impl<'a, T, Ret> Clone for ErasedFnPointer<'a, T, Ret> {
     fn clone(&self) -> Self {
