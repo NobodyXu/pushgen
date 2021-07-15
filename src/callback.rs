@@ -1,7 +1,8 @@
 use core::ffi::c_void;
 use core::mem::transmute;
 use core::ptr::null_mut;
-use core::marker::PhantomData;
+use core::marker::{PhantomData, Copy};
+use core::clone::Clone;
 
 /// ErasedFnPointer can either points to a free function or associated one that
 /// `&mut self`
@@ -26,7 +27,6 @@ use core::marker::PhantomData;
 /// );
 /// erased_fp.call(1);
 /// ```
-#[derive(Copy, Clone, Debug)]
 pub struct ErasedFnPointer<'a, T, Ret> {
     struct_pointer: *mut c_void,
     fp: *const (),
@@ -34,6 +34,13 @@ pub struct ErasedFnPointer<'a, T, Ret> {
     // unused generic parameter.
     phantom_sp: PhantomData<&'a ()>,
     phantom_fp: PhantomData<fn(T) -> Ret>,
+}
+
+impl<'a, T, Ret> Copy for ErasedFnPointer<'a, T, Ret> {}
+impl<'a, T, Ret> Clone for ErasedFnPointer<'a, T, Ret> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<'a, T, Ret> ErasedFnPointer<'a, T, Ret> {
