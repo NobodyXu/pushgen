@@ -46,6 +46,7 @@ impl<'a, T, Ret> Clone for ErasedFnPointer<'a, T, Ret> {
 }
 
 impl<'a, T, Ret> ErasedFnPointer<'a, T, Ret> {
+    #[inline(always)]
     pub fn from_associated<S>(
         struct_pointer: &'a mut S,
         fp: fn(&mut S, T) -> Ret,
@@ -58,6 +59,7 @@ impl<'a, T, Ret> ErasedFnPointer<'a, T, Ret> {
         }
     }
 
+    #[inline(always)]
     pub fn from_free(fp: fn(T) -> Ret) -> ErasedFnPointer<'static, T, Ret> {
         ErasedFnPointer {
             struct_pointer: null_mut(),
@@ -67,6 +69,7 @@ impl<'a, T, Ret> ErasedFnPointer<'a, T, Ret> {
         }
     }
 
+    #[inline(always)]
     pub fn call(&self, param: T) -> Ret {
         if self.struct_pointer.is_null() {
             let fp = unsafe { transmute::<_, fn(T) -> Ret>(self.fp) };
