@@ -326,7 +326,7 @@ pub trait GeneratorExt: Sealed + Generator {
     /// assert_eq!(result, GeneratorResult::Complete);
     /// ```
     #[inline]
-    fn for_each<Func>(self, mut func: Func) -> GeneratorResult
+    fn for_each<Func>(mut self, mut func: Func) -> GeneratorResult
     where
         Self: Sized,
         Func: FnMut(Self::Output),
@@ -368,16 +368,15 @@ pub trait GeneratorExt: Sealed + Generator {
     /// assert_eq!(output, ["stale_bread.json", "torrential_rain.png"]);
     /// ```
     #[inline]
-    fn try_for_each<F, E>(self, mut f: F) -> Result<(), E>
+    fn try_for_each<F, E>(mut self, f: F) -> Result<(), E>
     where
         Self: Sized,
         F: FnMut(Self::Output) -> Result<(), E>,
     {
-        let mut res = Ok(());
-        let mut pair = (&mut res, f);
+        let mut pair = (Ok(()), f);
 
         self.run(ErasedFnPointer::from_associated(&mut pair, |pair, value| {
-            let (res_mut, f) = *pair;
+            let (res_mut, f) = pair;
 
             match f(value) {
                 Ok(()) => ValueResult::MoreValues,
@@ -387,7 +386,8 @@ pub trait GeneratorExt: Sealed + Generator {
                 }
             }
         }));
-        res
+
+        pair.0
     }
 
     /// Zips the output of two generators into a single generator of pairs.
