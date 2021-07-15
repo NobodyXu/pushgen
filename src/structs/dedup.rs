@@ -30,8 +30,8 @@ where
     type Output = Src::Output;
 
     #[inline]
-    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
-        let mut prev = match self.next.take() {
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
+        let prev = match self.next.take() {
             Some(value) => value,
             None => {
                 let next = &mut self.next;

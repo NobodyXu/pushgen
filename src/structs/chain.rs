@@ -26,7 +26,7 @@ where
     type Output = First::Output;
 
     #[inline]
-    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         if self.first_active {
             let result = self.first.run(output);
             if result == GeneratorResult::Stopped {
