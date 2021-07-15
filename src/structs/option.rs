@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
+use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// A generator over the value in [`Some`] variant of an [`Option`].
 ///

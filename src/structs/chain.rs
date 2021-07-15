@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
+use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// Implements a chained generator. See [`.chain()`](crate::GeneratorExt::chain) for details.
 pub struct Chain<First, Second> {
@@ -42,19 +42,17 @@ where
 mod tests {
     use crate::structs::chain::Chain;
     use crate::SliceGenerator;
-    use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
+    use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
     #[test]
     fn basic_chain() {
         let data = [1, 2, 3];
         let mut output: Vec<i32> = Vec::new();
-        let result = Chain::new(SliceGenerator::new(&data), SliceGenerator::new(&data))
-            .run(
-                ErasedFnPointer::from_associated(&mut output, |output, x| {
-                    output.push(*x);
-                    ValueResult::MoreValues
-                }
-            )
+        let result = Chain::new(SliceGenerator::new(&data), SliceGenerator::new(&data)).run(
+            ErasedFnPointer::from_associated(&mut output, |output, x| {
+                output.push(*x);
+                ValueResult::MoreValues
+            }),
         );
 
         assert_eq!(result, GeneratorResult::Complete);

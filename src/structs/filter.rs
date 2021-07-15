@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
+use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// Implements a filtered generator. See [`.filter()`](crate::GeneratorExt::filter) for more details.
 pub struct Filter<Gen, Pred> {
@@ -30,15 +30,14 @@ where
     #[inline]
     fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         let mut pair = (&mut self.predicate, &mut output);
-        self.generator.run(
-            ErasedFnPointer::from_associated(&mut pair, |pair, x| {
+        self.generator
+            .run(ErasedFnPointer::from_associated(&mut pair, |pair, x| {
                 let (predicate, output) = pair;
                 if predicate(&x) {
                     output.call(x)
                 } else {
                     ValueResult::MoreValues
                 }
-            })
-        )
+            }))
     }
 }

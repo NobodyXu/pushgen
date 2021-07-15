@@ -1,4 +1,7 @@
-use crate::{structs::utility::set_some, Generator, GeneratorResult, IntoGenerator, ValueResult, ErasedFnPointer};
+use crate::{
+    structs::utility::set_some, ErasedFnPointer, Generator, GeneratorResult, IntoGenerator,
+    ValueResult,
+};
 
 /// Flatten generator implementation. See [`.flatten()`](crate::GeneratorExt::flatten) for details.
 pub struct Flatten<Src>
@@ -39,18 +42,16 @@ where
             }
         }
 
-        self.source.run(
-            ErasedFnPointer::from_associated(
-                &mut (&mut self.current_generator, output),
-                |pair, x| {
-                    let (current_generator, output) = pair;
-                    match set_some(*current_generator, x.into_gen()).run(*output)
-                    {
-                        GeneratorResult::Stopped => ValueResult::Stop,
-                        GeneratorResult::Complete => ValueResult::MoreValues,
-                    }
-            })
-        )
+        self.source.run(ErasedFnPointer::from_associated(
+            &mut (&mut self.current_generator, output),
+            |pair, x| {
+                let (current_generator, output) = pair;
+                match set_some(*current_generator, x.into_gen()).run(*output) {
+                    GeneratorResult::Stopped => ValueResult::Stop,
+                    GeneratorResult::Complete => ValueResult::MoreValues,
+                }
+            },
+        ))
     }
 }
 

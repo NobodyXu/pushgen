@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
+use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// Creates a new generator where each iteration calls the provided closure
 /// `F: FnMut() -> Option<T>`.

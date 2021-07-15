@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
+use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// A generator that clones the elements of an underlying generator. See `[.cloned()](crate::GeneratorExt::cloned)
 /// for details
@@ -21,11 +21,9 @@ where
     type Output = T;
 
     fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
-        self.source.run(
-            ErasedFnPointer::from_associated(
-                &mut output,
-                |output, x| output.call(x.clone())
-            )
-        )
+        self.source.run(ErasedFnPointer::from_associated(
+            &mut output,
+            |output, x| output.call(x.clone()),
+        ))
     }
 }

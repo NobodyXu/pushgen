@@ -1,4 +1,4 @@
-use crate::{Generator, GeneratorResult, ValueResult, ErasedFnPointer};
+use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// Box a generator, type-erasing the actual generator type.
 /// See [`.boxed()`](crate::GeneratorExt::boxed) for details.

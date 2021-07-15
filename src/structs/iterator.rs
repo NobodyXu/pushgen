@@ -1,4 +1,4 @@
-use crate::{structs::utility::InplaceUpdatable, Generator, ValueResult, ErasedFnPointer};
+use crate::{structs::utility::InplaceUpdatable, ErasedFnPointer, Generator, ValueResult};
 use core::option::Option::Some;
 
 /// Adapt a generator into an iterator. See [`.iter()`](crate::GeneratorExt::iter) for more info.
@@ -28,10 +28,13 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let mut retval = None;
-        self.source.run(ErasedFnPointer::from_associated(&mut retval, |retval, x| {
-            *retval = Some(x);
-            ValueResult::Stop
-        }));
+        self.source.run(ErasedFnPointer::from_associated(
+            &mut retval,
+            |retval, x| {
+                *retval = Some(x);
+                ValueResult::Stop
+            },
+        ));
         retval
     }
 
@@ -42,11 +45,12 @@ where
         F: FnMut(B, Self::Item) -> B,
     {
         let mut pair = (InplaceUpdatable::new(init), f);
-        self.source.run(ErasedFnPointer::from_associated(&mut pair, |pair, x| {
-            let (result, f) = pair;
-            result.update(|val| f(val, x));
-            ValueResult::MoreValues
-        }));
+        self.source
+            .run(ErasedFnPointer::from_associated(&mut pair, |pair, x| {
+                let (result, f) = pair;
+                result.update(|val| f(val, x));
+                ValueResult::MoreValues
+            }));
 
         pair.0.get_inner()
     }

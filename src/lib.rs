@@ -149,7 +149,8 @@ pub trait Generator {
     /// as long as the closure returns [`ValueResult::MoreValues`](crate::ValueResult::MoreValues).
     /// If the closure returns [`ValueResult::Stop`](crate::ValueResult::Stop) the generator **must**
     /// return [`GeneratorResult::Stopped`](crate::GeneratorResult::Stopped).
-    fn run(&mut self, output: ErasedFnPointer<Self::Output, crate::ValueResult>) -> GeneratorResult;
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, crate::ValueResult>)
+        -> GeneratorResult;
 }
 
 /// A generator that generates values from a slice.
