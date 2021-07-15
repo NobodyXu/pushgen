@@ -326,7 +326,7 @@ pub trait GeneratorExt: Sealed + Generator {
     /// assert_eq!(result, GeneratorResult::Complete);
     /// ```
     #[inline]
-    fn for_each<Func>(mut self, mut func: Func) -> GeneratorResult
+    fn for_each<Func>(&mut self, mut func: Func) -> GeneratorResult
     where
         Self: Sized,
         Func: FnMut(Self::Output),
@@ -368,7 +368,7 @@ pub trait GeneratorExt: Sealed + Generator {
     /// assert_eq!(output, ["stale_bread.json", "torrential_rain.png"]);
     /// ```
     #[inline]
-    fn try_for_each<F, E>(mut self, f: F) -> Result<(), E>
+    fn try_for_each<F, E>(&mut self, f: F) -> Result<(), E>
     where
         Self: Sized,
         F: FnMut(Self::Output) -> Result<(), E>,
@@ -515,7 +515,7 @@ mod tests {
             }
         }
 
-        let gen = StoppingGen;
+        let mut gen = StoppingGen;
         assert_eq!(gen.for_each(|_| ()), GeneratorResult::Stopped);
     }
 }
