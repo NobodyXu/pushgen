@@ -57,7 +57,7 @@ where
     type Output = T;
 
     #[inline]
-    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         while let Some(v) = self.0() {
             if output.call(v) == ValueResult::Stop {
                 return GeneratorResult::Stopped;

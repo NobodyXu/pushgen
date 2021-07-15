@@ -38,7 +38,7 @@ impl<I: Iterator> Generator for FromIter<I> {
     type Output = I::Item;
 
     #[inline]
-    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         while let Some(v) = self.0.next() {
             if output.call(v) == ValueResult::Stop {
                 return GeneratorResult::Stopped;

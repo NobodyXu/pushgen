@@ -32,7 +32,7 @@ where
     type Output = <<Src as Generator>::Output as IntoGenerator>::Output;
 
     #[inline]
-    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         if let Some(current) = self.current_generator.as_mut() {
             if current.run(output) == GeneratorResult::Stopped {
                 return GeneratorResult::Stopped;
@@ -43,8 +43,8 @@ where
             ErasedFnPointer::from_associated(
                 &mut (&mut self.current_generator, output),
                 |pair, x| {
-                    let (current_generator, output) = *pair;
-                    match set_some(current_generator, x.into_gen()).run(output)
+                    let (current_generator, output) = pair;
+                    match set_some(*current_generator, x.into_gen()).run(*output)
                     {
                         GeneratorResult::Stopped => ValueResult::Stop,
                         GeneratorResult::Complete => ValueResult::MoreValues,

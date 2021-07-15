@@ -30,7 +30,7 @@ where
 
         self.source.run(
             ErasedFnPointer::from_associated(&mut pair, |pair, x| {
-                let (transform, output) = *pair;
+                let (transform, output) = pair;
                 if let Some(x) = transform(x) {
                     output.call(x)
                 } else {

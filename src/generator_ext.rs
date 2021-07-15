@@ -515,7 +515,7 @@ mod tests {
             }
         }
 
-        let mut gen = StoppingGen;
+        let gen = StoppingGen;
         assert_eq!(gen.for_each(|_| ()), GeneratorResult::Stopped);
     }
 }

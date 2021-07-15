@@ -36,20 +36,19 @@ where
     }
 
     #[inline]
-    fn fold<B, F>(mut self, init: B, mut f: F) -> B
+    fn fold<B, F>(mut self, init: B, f: F) -> B
     where
         Self: Sized,
         F: FnMut(B, Self::Item) -> B,
     {
-        let mut result = InplaceUpdatable::new(init);
-
-        let pair = (&mut result, f);
+        let mut pair = (InplaceUpdatable::new(init), f);
         self.source.run(ErasedFnPointer::from_associated(&mut pair, |pair, x| {
-            let (result, f) = *pair;
+            let (result, f) = pair;
             result.update(|val| f(val, x));
             ValueResult::MoreValues
         }));
-        result.get_inner()
+
+        pair.0.get_inner()
     }
 }
 

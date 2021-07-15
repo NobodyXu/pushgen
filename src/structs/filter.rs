@@ -32,7 +32,7 @@ where
         let mut pair = (&mut self.predicate, &mut output);
         self.generator.run(
             ErasedFnPointer::from_associated(&mut pair, |pair, x| {
-                let (predicate, output) = *pair;
+                let (predicate, output) = pair;
                 if predicate(&x) {
                     output.call(x)
                 } else {

@@ -21,7 +21,7 @@ impl<T> Generator for OptionGen<T> {
     type Output = T;
 
     #[inline]
-    fn run(&mut self, mut output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
+    fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         if let Some(v) = self.inner.take() {
             if output.call(v) == ValueResult::Stop {
                 return GeneratorResult::Stopped;
