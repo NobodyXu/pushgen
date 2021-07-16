@@ -1,7 +1,7 @@
 use crate::structs::{
     Chain, Cloned, Dedup, Filter, FilterMap, Flatten, IteratorAdaptor, Map, Skip, Take, Zip,
 };
-use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
+use crate::{run_gen, Generator, GeneratorResult, ValueResult};
 
 pub trait Sealed {}
 
@@ -46,13 +46,10 @@ pub trait GeneratorExt: Sealed + Generator {
         Self: Sized,
     {
         let mut res = None;
-        self.run(ErasedFnPointer::from_associated(
-            &mut res,
-            |res_mut, value| {
-                *res_mut = Some(value);
-                ValueResult::MoreValues
-            },
-        ));
+        run_gen(&mut self, &mut res, |res_mut, value| {
+            *res_mut = Some(value);
+            ValueResult::MoreValues
+        });
         res
     }
 
@@ -332,13 +329,10 @@ pub trait GeneratorExt: Sealed + Generator {
         Self: Sized,
         Func: FnMut(Self::Output),
     {
-        self.run(ErasedFnPointer::from_associated(
-            &mut func,
-            |func, value| {
-                (*func)(value);
-                ValueResult::MoreValues
-            },
-        ))
+        run_gen(self, &mut func, |func, value| {
+            (*func)(value);
+            ValueResult::MoreValues
+        })
     }
 
     /// A generator method that applies a fallible function to each item
@@ -379,20 +373,17 @@ pub trait GeneratorExt: Sealed + Generator {
     {
         let mut pair = (Ok(()), f);
 
-        self.run(ErasedFnPointer::from_associated(
-            &mut pair,
-            |pair, value| {
-                let (res_mut, f) = pair;
+        run_gen(self, &mut pair, |pair, value| {
+            let (res_mut, f) = pair;
 
-                match f(value) {
-                    Ok(()) => ValueResult::MoreValues,
-                    Err(e) => {
-                        *res_mut = Err(e);
-                        ValueResult::Stop
-                    }
+            match f(value) {
+                Ok(()) => ValueResult::MoreValues,
+                Err(e) => {
+                    *res_mut = Err(e);
+                    ValueResult::Stop
                 }
-            },
-        ));
+            }
+        });
 
         pair.0
     }

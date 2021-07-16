@@ -1,4 +1,4 @@
-use crate::{ErasedFnPointer, Generator, GeneratorResult, SliceGenerator, ValueResult};
+use crate::{run_gen, ErasedFnPointer, Generator, GeneratorResult, SliceGenerator, ValueResult};
 
 pub struct StoppingGen<'a, T> {
     stop_at: i32,
@@ -33,20 +33,18 @@ impl<'a, T> Generator for StoppingGen<'a, T> {
 
         let mut tup = (&mut self.stopped_data, &mut self.stop_at, output);
 
-        let result = self
-            .data
-            .run(ErasedFnPointer::from_associated(&mut tup, |tup, x| {
-                let (stored_stop, stop_at, output) = tup;
+        let result = run_gen(&mut self.data, &mut tup, |tup, x| {
+            let (stored_stop, stop_at, output) = tup;
 
-                let old_stop_at = **stop_at;
-                **stop_at -= 1;
-                if old_stop_at == 0 {
-                    **stored_stop = Some(x);
-                    ValueResult::Stop
-                } else {
-                    output.call(x)
-                }
-            }));
+            let old_stop_at = **stop_at;
+            **stop_at -= 1;
+            if old_stop_at == 0 {
+                **stored_stop = Some(x);
+                ValueResult::Stop
+            } else {
+                output.call(x)
+            }
+        });
         if result == GeneratorResult::Complete {
             self.stop_at = -1;
         }

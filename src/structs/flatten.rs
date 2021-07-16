@@ -1,6 +1,6 @@
 use crate::{
-    structs::utility::set_some, ErasedFnPointer, Generator, GeneratorResult, IntoGenerator,
-    ValueResult,
+    run_gen, structs::utility::set_some, ErasedFnPointer, Generator, GeneratorResult,
+    IntoGenerator, ValueResult,
 };
 
 /// Flatten generator implementation. See [`.flatten()`](crate::GeneratorExt::flatten) for details.
@@ -42,7 +42,8 @@ where
             }
         }
 
-        self.source.run(ErasedFnPointer::from_associated(
+        run_gen(
+            &mut self.source,
             &mut (&mut self.current_generator, output),
             |pair, x| {
                 let (current_generator, output) = pair;
@@ -51,7 +52,7 @@ where
                     GeneratorResult::Complete => ValueResult::MoreValues,
                 }
             },
-        ))
+        )
     }
 }
 

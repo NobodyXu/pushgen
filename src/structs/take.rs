@@ -1,4 +1,4 @@
-use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
+use crate::{run_gen, ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// Take `n` values from a generator. See [`.take()`](crate::GeneratorExt::take) for details.
 pub struct Take<Src> {
@@ -23,18 +23,16 @@ impl<Src: Generator> Generator for Take<Src> {
     fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         if self.amount_left > 0 {
             let mut pair = (&mut self.amount_left, output);
-            let result = self
-                .source
-                .run(ErasedFnPointer::from_associated(&mut pair, |pair, x| {
-                    let (amount_left, output) = pair;
-                    **amount_left -= 1;
-                    let res = output.call(x);
-                    if **amount_left == 0 {
-                        ValueResult::Stop
-                    } else {
-                        res
-                    }
-                }));
+            let result = run_gen(&mut self.source, &mut pair, |pair, x| {
+                let (amount_left, output) = pair;
+                **amount_left -= 1;
+                let res = output.call(x);
+                if **amount_left == 0 {
+                    ValueResult::Stop
+                } else {
+                    res
+                }
+            });
             if result == GeneratorResult::Complete {
                 self.amount_left = 0;
                 return GeneratorResult::Complete;

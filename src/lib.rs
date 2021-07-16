@@ -152,6 +152,15 @@ pub trait Generator {
     fn run(&mut self, output: ErasedFnPointer<Self::Output, crate::ValueResult>)
         -> GeneratorResult;
 }
+/// Convenient function for running the generator
+#[inline(always)]
+pub fn run_gen<G: Generator, S>(
+    gen: &mut G,
+    struct_pointer: &mut S,
+    fp: fn(&mut S, G::Output) -> ValueResult,
+) -> GeneratorResult {
+    gen.run(ErasedFnPointer::from_associated(struct_pointer, fp))
+}
 
 /// A generator that generates values from a slice.
 ///

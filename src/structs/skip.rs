@@ -1,4 +1,4 @@
-use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
+use crate::{run_gen, ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// Skip over a set amount of values. See [`.skip()`](crate::GeneratorExt::skip) for more details.
 pub struct Skip<Gen> {
@@ -22,13 +22,10 @@ where
     #[inline]
     fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         if self.amount > 0 {
-            let skip_run = self.generator.run(ErasedFnPointer::from_associated(
-                &mut self.amount,
-                |amount, _| {
-                    *amount -= 1;
-                    (*amount != 0).into()
-                },
-            ));
+            let skip_run = run_gen(&mut self.generator, &mut self.amount, |amount, _| {
+                *amount -= 1;
+                (*amount != 0).into()
+            });
 
             if skip_run == GeneratorResult::Complete {
                 return GeneratorResult::Complete;

@@ -1,4 +1,4 @@
-use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
+use crate::{run_gen, ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// Zip two generators. See [`.zip()`](crate::GeneratorExt::zip) for details.
 pub struct Zip<Left, Right> {
@@ -25,27 +25,21 @@ where
         let mut right_result = GeneratorResult::Stopped;
 
         let mut tup = (&mut right_result, &mut self.right, output);
-        let left_result = self.left.run(ErasedFnPointer::from_associated(
-            &mut tup,
-            |tup, left_value| {
-                let (right_result, right, output) = tup;
+        let left_result = run_gen(&mut self.left, &mut tup, |tup, left_value| {
+            let (right_result, right, output) = tup;
 
-                let mut right_value = None;
-                **right_result = right.run(ErasedFnPointer::from_associated(
-                    &mut right_value,
-                    |right_value, rv| {
-                        *right_value = Some(rv);
-                        ValueResult::Stop
-                    },
-                ));
+            let mut right_value = None;
+            **right_result = run_gen(*right, &mut right_value, |right_value, rv| {
+                *right_value = Some(rv);
+                ValueResult::Stop
+            });
 
-                if let Some(right_value) = right_value {
-                    output.call((left_value, right_value))
-                } else {
-                    ValueResult::Stop
-                }
-            },
-        ));
+            if let Some(right_value) = right_value {
+                output.call((left_value, right_value))
+            } else {
+                ValueResult::Stop
+            }
+        });
         if left_result == GeneratorResult::Complete || right_result == GeneratorResult::Complete {
             GeneratorResult::Complete
         } else {

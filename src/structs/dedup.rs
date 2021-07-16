@@ -1,4 +1,4 @@
-use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
+use crate::{run_gen, ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 use core::mem;
 
 /// Deduplication of duplicate consecutive values. See [`.dedup()`](crate::GeneratorExt::dedup) for details.
@@ -36,12 +36,10 @@ where
             None => {
                 let next = &mut self.next;
                 // Try to get the initial value
-                let take_one_res =
-                    self.source
-                        .run(ErasedFnPointer::from_associated(next, |next, x| {
-                            *next = Some(x);
-                            ValueResult::Stop
-                        }));
+                let take_one_res = run_gen(&mut self.source, next, |next, x| {
+                    *next = Some(x);
+                    ValueResult::Stop
+                });
 
                 match self.next.take() {
                     Some(value) => value,
@@ -52,19 +50,17 @@ where
 
         let mut pair = (prev, output);
 
-        let mut result = self
-            .source
-            .run(ErasedFnPointer::from_associated(&mut pair, |pair, x| {
-                let (prev, output) = pair;
-                if x == *prev {
-                    // Removing this line causes the regression of the performance of
-                    // bench pushgen_dedup_flatten_filter_map
-                    *prev = x;
-                    ValueResult::MoreValues
-                } else {
-                    output.call(mem::replace(prev, x))
-                }
-            }));
+        let mut result = run_gen(&mut self.source, &mut pair, |pair, x| {
+            let (prev, output) = pair;
+            if x == *prev {
+                // Removing this line causes the regression of the performance of
+                // bench pushgen_dedup_flatten_filter_map
+                *prev = x;
+                ValueResult::MoreValues
+            } else {
+                output.call(mem::replace(prev, x))
+            }
+        });
 
         let prev = pair.0;
 

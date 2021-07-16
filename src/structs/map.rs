@@ -1,4 +1,4 @@
-use crate::{ErasedFnPointer, Generator, GeneratorResult, ValueResult};
+use crate::{run_gen, ErasedFnPointer, Generator, GeneratorResult, ValueResult};
 
 /// Implements a mapped generator. See [`.map()`](crate::GeneratorExt::map) for details.
 pub struct Map<Gen, Func> {
@@ -27,12 +27,9 @@ where
     #[inline]
     fn run(&mut self, output: ErasedFnPointer<Self::Output, ValueResult>) -> GeneratorResult {
         let mut pair = (&mut self.transform, output);
-        self.source.run(ErasedFnPointer::from_associated(
-            &mut pair,
-            |pair, value| {
-                let (transform, output) = pair;
-                output.call(transform(value))
-            },
-        ))
+        run_gen(&mut self.source, &mut pair, |pair, value| {
+            let (transform, output) = pair;
+            output.call(transform(value))
+        })
     }
 }
